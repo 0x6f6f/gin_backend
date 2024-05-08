@@ -1,4 +1,4 @@
-package helpers
+package controllers
 
 type Response struct {
 	Code    int         `json:"code"`

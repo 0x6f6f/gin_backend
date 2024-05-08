@@ -20,7 +20,21 @@ const (
 	ACCOUNTANT                         //会计
 	FINANCE_SPECIALIST                 //金融专员
 	FINANCE_MANAGER                    //金融经理
+	DEFAULT                            //默认权限
 )
+
+// 枚举值到名称的映射
+var RoleNameMap = map[RoleID]string{
+	GENERAL_MANAGER:      "总经理",
+	SYSTEM_ADMINISTRATOR: "系统管理员",
+	SALES_REPRESENTATIVE: "销售代表",
+	SALES_MANAGER:        "销售经理",
+	SALES_DIRECTOR:       "销售总监",
+	ACCOUNTANT:           "会计",
+	FINANCE_SPECIALIST:   "金融专员",
+	FINANCE_MANAGER:      "金融经理",
+	DEFAULT:              "默认权限",
+}
 
 type Gender uint
 
@@ -33,54 +47,47 @@ const (
 // 公司的员工账户
 type User struct {
 	gorm.Model
-	UserName     string      `gorm:"unique"`   // 用户名唯一
+	UserName     string      `gorm:"unique"`   // 用户名（唯一）
 	PasswordHash string      `gorm:"not null"` // hash后的密码
 	RoleID       RoleID      `gorm:"not null"` // 用户身份
-	UserProfile  UserProfile `gorm:"not null"` // 关联的 UserProfile 实体
+	UserProfile  UserProfile // 关联的 UserProfile 实体
+	DepartmentID *uint       // 所属部门ID
+	ZoneID       *uint       // 所属战区ID
+	WorkLogs     []WorkLog   //工作日志
 }
 
 // 用户详细信息
 type UserProfile struct {
 	gorm.Model
-	UserID  uint `gorm:"not null"`
-	Name    string
-	Age     uint
-	Gender  Gender
-	Address string
-	Phone   string
+	UserID  uint   `gorm:"not null"`
+	Name    string // 姓名
+	Age     uint   // 年龄
+	Gender  Gender // 性别
+	Address string // 地址
+	Phone   string // 电话
 }
 
 // 销售部门
-type SalesDepartment struct {
+type Department struct {
 	gorm.Model
-	Name   string  `gorm:"not null"`
-	Salers []Saler `gorm:"foreignKey:SalesDepartmentID"`
-	ZoneID uint    `gorm:"not null"`
-	Zone   Zone    `gorm:"foreignKey:ZoneID"`
+	Name    string `gorm:"unique"`
+	User    []User `gorm:"foreignKey:DepartmentID"` //包含全部销售人员
+	ZoneID  uint   //所属战区ID
+	Manager User   //部门销售经理
 }
 
 // 销售部战区
 type Zone struct {
 	gorm.Model
-	Name             string            `gorm:"not null"`
-	SalesDepartments []SalesDepartment `gorm:"foreignKey:ZoneID"`
-}
-
-// 销售人员
-type Saler struct {
-	gorm.Model
-	RoleID            RoleID    `gorm:"not null"`          // 销售人员的角色(销售代表、销售经理、销售总监)
-	UserID            uint      `gorm:"not null"`          // 销售人员的账户ID
-	SalesDepartmentID uint      `gorm:"not null"`          // 销售人员所在的销售部门ID
-	ZoneID            uint      `gorm:"not null"`          // 销售人员所在的战区ID
-	WorkLogs          []WorkLog `gorm:"foreignKey:UserID"` // 关联的 WorkLog 实体
+	Name        string       `gorm:"unique"`
+	Departments []Department `gorm:"foreignKey:ZoneID"` //包含全部销售部门
+	Director    User         //战区销售总监
 }
 
 // 销售人员的工作日志
 type WorkLog struct {
 	gorm.Model
 	UserID     uint      `gorm:"not null"`
-	User       User      `gorm:"foreignKey:UserID"`
 	Calls      int       // 电话拨打次数
 	ValidCalls int       // 有效电话拨打次数
 	Visits     int       // 面谈客户次数
@@ -88,25 +95,14 @@ type WorkLog struct {
 	Date       time.Time // 工作日志日期
 }
 
-// 财务专员
-type FinanceSpecialist struct {
-	gorm.Model
-	RoleID RoleID `gorm:"not null"` // 财务人员的角色(金融专员、金融经理)
-	UserID uint   `gorm:"not null"` // 销售人员的账户ID
-}
-
-// 会计
-type Accountant struct {
-	gorm.Model
-	RoleID RoleID `gorm:"not null"` // 会计的角色
-	UserID uint   `gorm:"not null"` // 会计的账户ID
-}
-
 // 贷款客户
 type Customer struct {
 	gorm.Model
-	Name  string `gorm:"not null"`
-	Phone string `gorm:"not null"`
+	Name    string `gorm:"not null"` // 姓名
+	Phone   string `gorm:"not null"` // 电话
+	Age     uint   // 年龄
+	Gender  Gender // 性别
+	Address string // 地址
 	// 贷款意向，起始为10，每天减1，为0时表示不再有贷款意向，需要移入客户公海
 	// 如果用户贷款，将其设置为100
 	LoanIntent    int        `gorm:"not null"`
@@ -140,7 +136,7 @@ type Contract struct {
 	// 相关人员
 	CustomerID   uint // 贷款客户ID
 	SalerID      uint // 销售人员ID
-	SpecialistID uint // 财务专员ID
+	FinanceID    uint // 财务专员ID
 	AccountantID uint // 会计ID
 	DepartmentID uint // 所属部门ID
 	ZoneID       uint // 所属战区ID

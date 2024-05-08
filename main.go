@@ -6,8 +6,9 @@ import (
 	"gin-boilerplate/infra/logger"
 	"gin-boilerplate/migrations"
 	"gin-boilerplate/routers"
-	"github.com/spf13/viper"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
 func main() {
@@ -20,9 +21,9 @@ func main() {
 	if err := config.SetupConfig(); err != nil {
 		logger.Fatalf("config SetupConfig() error: %s", err)
 	}
-	masterDSN, replicaDSN := config.DbConfiguration()
+	defaultDSN, masterDSN, replicaDSN := config.DbConfiguration()
 
-	if err := database.DbConnection(masterDSN, replicaDSN); err != nil {
+	if err := database.DbConnection(defaultDSN, masterDSN, replicaDSN); err != nil {
 		logger.Fatalf("database DbConnection error: %s", err)
 	}
 	//later separate migration

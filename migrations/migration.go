@@ -9,14 +9,11 @@ import (
 // TODO later separate migration each models
 func Migrate() {
 	var migrationModels = []interface{}{
-		&models.User{},
+		&models.Zone{},       // 创建没有外键依赖的表
+		&models.Department{}, // 依赖Zone
+		&models.User{},       // 可能依赖其他表，如Department
 		&models.UserProfile{},
-		&models.SalesDepartment{},
-		&models.Zone{},
-		&models.Saler{},
 		&models.WorkLog{},
-		&models.FinanceSpecialist{},
-		&models.Accountant{},
 		&models.Customer{},
 		&models.Contract{},
 		&models.SystemLog{},
