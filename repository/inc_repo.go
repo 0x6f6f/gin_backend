@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"fmt"
 	"gin-boilerplate/helpers"
 	"gin-boilerplate/models"
@@ -12,12 +13,12 @@ import (
 /*用户管理*/
 // CreateUser 新建User用户
 // 普通用户注册账户
-func CreateUser(db *gorm.DB, userName, password string, departmentID uint) (*models.User, error) {
+func CreateUser(db *gorm.DB, userName, password string) (*models.User, error) {
 	passwordHash, err := helpers.HashPassword(password)
 	if err != nil {
 		return nil, err
 	}
-	user := models.User{UserName: userName, PasswordHash: passwordHash, RoleID: models.DEFAULT, DepartmentID: &departmentID}
+	user := models.User{UserName: userName, PasswordHash: passwordHash, RoleID: models.DEFAULT}
 	err = db.Create(&user).Error
 	if err != nil {
 		return nil, err
@@ -174,7 +175,7 @@ func CreateZone(db *gorm.DB, systemManagerID uint, name string) (*models.Zone, e
 
 // CreateSalesDepartment 新建销售部门
 // 系统管理员可以进行部门注册
-func CreateSalesDepartment(db *gorm.DB, systemManagerID uint, name string, zoneID uint) (*models.Department, error) {
+func CreateSalesDepartment(db *gorm.DB, systemManagerID uint, name string, zoneID *uint) (*models.Department, error) {
 	err := db.Create(&models.Department{Name: name, ZoneID: zoneID}).Error
 	if err != nil {
 		return nil, err
@@ -188,7 +189,7 @@ func CreateSalesDepartment(db *gorm.DB, systemManagerID uint, name string, zoneI
 	return &department, nil
 }
 
-// CreateFinanceDepartment 新建金融部门
+// CreateFinanceDepartment 新建金融部门，
 // 系统管理员可以进行部门注册
 func CreateFinanceDepartment(db *gorm.DB, systemManagerID uint, name string) (*models.Department, error) {
 	err := db.Create(&models.Department{Name: name}).Error
@@ -275,6 +276,46 @@ func AssignUserToZone(db *gorm.DB, systemManagerID, userID, zoneID uint) error {
 	return nil
 }
 
+// 确定战区的销售总监
+func AssignDirectorToZone(db *gorm.DB, systemManagerID, userID, zoneID uint) error {
+	//获取用户
+	var user models.User
+	if err := db.Where("id = ?", userID).First(&user).Error; err != nil {
+		return err
+	}
+	//获取战区
+	var zone models.Zone
+	if err := db.Where("id = ?", zoneID).First(&zone).Error; err != nil {
+		return err
+	}
+	//更新战区的销售总监
+	if err := db.Model(&models.Zone{}).Where("id = ?", zoneID).Update("director_id", userID).Error; err != nil {
+		return err
+	}
+	logAction(db, systemManagerID, fmt.Sprintf("确定战区: %d 的销售总监: %d", zoneID, userID))
+	return nil
+}
+
+// 确定部门的销售经理
+func AssignManagerToDepartment(db *gorm.DB, systemManagerID, userID, departmentID uint) error {
+	//获取用户
+	var user models.User
+	if err := db.Where("id = ?", userID).First(&user).Error; err != nil {
+		return err
+	}
+	//获取部门
+	var department models.Department
+	if err := db.Where("id = ?", departmentID).First(&department).Error; err != nil {
+		return err
+	}
+	//更新部门的销售经理
+	if err := db.Model(&models.Department{}).Where("id = ?", departmentID).Update("manager_id", userID).Error; err != nil {
+		return err
+	}
+	logAction(db, systemManagerID, fmt.Sprintf("确定部门: %d 的销售经理: %d", departmentID, userID))
+	return nil
+}
+
 // GetSystemLogList 日志查询
 // 系统管理员可以查看所有日志
 func GetSystemLogList(db *gorm.DB, systemManagerID uint) ([]models.SystemLog, error) {
@@ -290,18 +331,27 @@ func GetSystemLogList(db *gorm.DB, systemManagerID uint) ([]models.SystemLog, er
 /*客户管理*/
 
 // CreateCustomer 销售人员新建客户信息
-func CreateCustomer(db *gorm.DB, userID uint, name, phone string) error {
+func CreateCustomer(db *gorm.DB, userID uint, name, phone string) (*models.Customer, error) {
 	customer := models.Customer{Name: name, Phone: phone, LoanIntent: 10, IsInPublicSea: false, SalerID: userID}
-	err := db.Create(&customer).Error
+	err := db.Create(customer).Error
 	if err != nil {
-		return err
+		return &models.Customer{}, err
 	}
 	logAction(db, userID, fmt.Sprintf("新建客户: %d 信息", customer.ID))
-	return nil
+	return &customer, nil
+}
+
+func GetCustomerByID(db *gorm.DB, customerID uint) (*models.Customer, error) {
+	var customer models.Customer
+	err := db.Where("id = ?", customerID).First(&customer).Error
+	if err != nil {
+		return &models.Customer{}, err
+	}
+	return &customer, nil
 }
 
 // UpdateCustomer 销售人员更新客户基本信息
-func UpdateCustomer(db *gorm.DB, userID, customerID uint, name, phone string, age uint, gender models.Gender, address string) error {
+func UpdateCustomer(db *gorm.DB, userID, customerID uint, name, phone string, age uint, gender models.Gender, address string) (*models.Customer, error) {
 	err := db.Model(&models.Customer{}).Where("id = ?", customerID).Updates(models.Customer{
 		Name:    name,
 		Phone:   phone,
@@ -310,23 +360,46 @@ func UpdateCustomer(db *gorm.DB, userID, customerID uint, name, phone string, ag
 		Address: address,
 	}).Error
 	if err != nil {
-		return err
+		return &models.Customer{}, err
 	}
 	logAction(db, userID, fmt.Sprintf("更新客户: %d 信息", customerID))
-	return nil
+	updated_customer, err := GetCustomerByID(db, customerID)
+	if err != nil {
+		return &models.Customer{}, err
+	}
+	return updated_customer, nil
 }
 
-// GetCustomer 查询客户信息
+// ListCustomer 查询客户信息
 // 销售人员可以查看自己的客户信息，销售部长可以查看部门内的客户信息，
 // 销售总监可以查看战区内的客户信息，总经理可以查看所有客户信息
-func GetCustomer(db *gorm.DB, userID, customerID uint) (models.Customer, error) {
-	var customer models.Customer
-	err := db.Where("id = ?", customerID).First(&customer).Error
+func ListCustomer(db *gorm.DB, userID uint) (*[]models.Customer, error) {
+	cur_user, err := GetUserByID(db, userID)
 	if err != nil {
-		return models.Customer{}, err
+		return &[]models.Customer{}, err
 	}
-	logAction(db, userID, fmt.Sprintf("查看客户: %d 信息", customerID))
-	return customer, nil
+	var customers []models.Customer
+	if cur_user.RoleID == models.SALES_REPRESENTATIVE {
+		// 销售人员可以查看自己的客户列表
+		err := db.Where("saler_id = ?", userID).Find(&customers).Error
+		if err != nil {
+			return &[]models.Customer{}, err
+		}
+	} else if cur_user.RoleID == models.SALES_MANAGER {
+		// 销售部长可以查看部门内的客户列表
+
+	} else if cur_user.RoleID == models.SALES_DIRECTOR {
+		// 销售总监可以查看战区内的客户列表
+
+	} else if cur_user.RoleID == models.GENERAL_MANAGER {
+		// 总经理可以查看所有客户列表
+
+	} else {
+		logAction(db, userID, "尝试查看客户列表失败")
+		return &[]models.Customer{}, errors.New("无权限查看客户列表")
+	}
+	logAction(db, userID, "查看客户列表")
+	return &customers, nil
 }
 
 // GetPublicSeaCustomerList 查询公海客户列表
@@ -343,13 +416,31 @@ func GetPublicSeaCustomerList(db *gorm.DB, userID uint) ([]models.Customer, erro
 
 // MigrateCustomer 迁移客户
 // 总经理可以跨战区迁移，销售总监可以战区内迁移，销售部长可以部门内迁移
-func MigrateCustomer(db *gorm.DB, userID, newSalerID, customerID uint) error {
-	// 更新客户的销售人员归属
-	if err := db.Model(&models.Customer{}).Where("id = ?", customerID).Update("saler_id", newSalerID).Error; err != nil {
-		return err
+func MigrateCustomer(db *gorm.DB, userID, newSalerID, customerID uint) (*models.Customer, error) {
+	cur_user, err := GetUserByID(db, userID)
+	if err != nil {
+		return &models.Customer{}, err
 	}
+	if cur_user.RoleID == models.GENERAL_MANAGER {
+		// 总经理可以跨战区迁移
+		if err := db.Model(&models.Customer{}).Where("id = ?", customerID).Update("saler_id", newSalerID).Error; err != nil {
+			return &models.Customer{}, err
+		}
+	} else if cur_user.RoleID == models.SALES_DIRECTOR {
+		// 销售总监可以战区内迁移
+	} else if cur_user.RoleID == models.SALES_MANAGER {
+		// 销售部长可以部门内迁移
+	} else {
+		logAction(db, userID, "尝试迁移客户失败")
+		return &models.Customer{}, errors.New("无权限迁移客户")
+	}
+
 	logAction(db, userID, fmt.Sprintf("迁移了客户：%d 到销售人员：%d", customerID, newSalerID))
-	return nil
+	updated_customer, err := GetCustomerByID(db, customerID)
+	if err != nil {
+		return &models.Customer{}, err
+	}
+	return updated_customer, nil
 }
 
 // AutoUpdateCustomerLoanIntent 系统每天自动更新客户贷款意向
@@ -394,14 +485,14 @@ func AutoMigrateCustomerToPublicSea(db *gorm.DB) error {
 /*销售代表记录工作日志*/
 
 // CreateWorkLog 销售人员记录工作日志
-func CreateWorkLog(db *gorm.DB, userID uint, calls, validCalls, visits, contracts int, date time.Time) error {
+func CreateWorkLog(db *gorm.DB, userID uint, calls, validCalls, visits, contracts int, date time.Time) (*models.WorkLog, error) {
 	workLog := models.WorkLog{UserID: userID, Calls: calls, ValidCalls: validCalls, Visits: visits, Contracts: contracts, Date: date}
 	err := db.Create(&workLog).Error
 	if err != nil {
-		return err
+		return &models.WorkLog{}, err
 	}
 	logAction(db, userID, "记录工作日志")
-	return nil
+	return &workLog, nil
 }
 
 /*合同管理*/

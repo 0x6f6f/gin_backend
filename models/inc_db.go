@@ -36,6 +36,19 @@ var RoleNameMap = map[RoleID]string{
 	DEFAULT:              "默认权限",
 }
 
+// 名称到枚举值的映射
+var RoleStrToEnumMap = map[string]RoleID{
+	"总经理":   GENERAL_MANAGER,
+	"系统管理员": SYSTEM_ADMINISTRATOR,
+	"销售代表":  SALES_REPRESENTATIVE,
+	"销售经理":  SALES_MANAGER,
+	"销售总监":  SALES_DIRECTOR,
+	"会计":    ACCOUNTANT,
+	"金融专员":  FINANCE_SPECIALIST,
+	"金融经理":  FINANCE_MANAGER,
+	"默认权限":  DEFAULT,
+}
+
 type Gender uint
 
 // 定义性别的枚举值
@@ -43,6 +56,16 @@ const (
 	FEMALE Gender = iota //女性
 	MALE                 //男性
 )
+
+var GenderNameMap = map[Gender]string{
+	FEMALE: "女",
+	MALE:   "男",
+}
+
+var GenderStrToEnumMap = map[string]Gender{
+	"女": FEMALE,
+	"男": MALE,
+}
 
 // 公司的员工账户
 type User struct {
@@ -72,7 +95,7 @@ type Department struct {
 	gorm.Model
 	Name    string `gorm:"unique"`
 	User    []User `gorm:"foreignKey:DepartmentID"` //包含全部销售人员
-	ZoneID  uint   //所属战区ID
+	ZoneID  *uint  //所属战区ID
 	Manager User   //部门销售经理
 }
 
