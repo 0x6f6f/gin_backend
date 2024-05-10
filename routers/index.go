@@ -46,8 +46,15 @@ func RegisterRoutes(route *gin.Engine) {
 
 	saleGroup := route.Group(api_version+"/sale", middleware.UserRoleAuthMiddleware([]string{"销售代表", "销售经理", "销售总监"}))
 	{
+		// todo: not tested
+		// 管理客户
 		saleGroup.GET("/createCustomer", controllers.SaleCreateCustomer)
 		saleGroup.GET("/updateCustomer", controllers.SaleUpdateCustomer)
 		saleGroup.GET("/listCustomers", controllers.SaleListCustomers)
+		saleGroup.GET("/migrateCustomer", controllers.SaleMigrateCustomer)
+		saleGroup.GET("/getPublicSeaCustomerList", controllers.SaleGetPublicSeaCustomerList)
+		// todo: not tested
+		// 管理工作日志
+		saleGroup.GET("createWorkLog", controllers.SaleCreateWorkLog)
 	}
 }

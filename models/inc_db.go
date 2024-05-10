@@ -131,7 +131,10 @@ type Customer struct {
 	LoanIntent    int        `gorm:"not null"`
 	IsInPublicSea bool       `gorm:"not null"`              // 是否在客户公海
 	Contracts     []Contract `gorm:"foreignKey:CustomerID"` // 有关的贷款合同
-	SalerID       uint       // 当前接触的销售代表ID
+	// 如果全为nil表示当前客户在公海
+	SalerID      *uint // 当前接触的销售代表ID
+	DepartmentID *uint // 当前所属部门ID
+	ZoneID       *uint // 当前所属战区ID
 }
 
 type ContractStatus uint

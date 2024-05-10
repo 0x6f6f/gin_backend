@@ -332,20 +332,31 @@ func GetSystemLogList(db *gorm.DB, systemManagerID uint) ([]models.SystemLog, er
 
 // CreateCustomer 销售人员新建客户信息
 func CreateCustomer(db *gorm.DB, userID uint, name, phone string) (*models.Customer, error) {
-	customer := models.Customer{Name: name, Phone: phone, LoanIntent: 10, IsInPublicSea: false, SalerID: userID}
+	var saler models.User
+	if err := db.Where("id = ?", userID).First(&saler).Error; err != nil {
+		return nil, err
+	}
+	if saler.DepartmentID == nil {
+		return nil, errors.New("用户未分配部门")
+	} else if saler.ZoneID == nil {
+	    return nil, errors.New("用户未分配到战区")
+	}
+	customer := models.Customer{Name: name, Phone: phone, LoanIntent: 10, IsInPublicSea: false,
+		SalerID: &userID, DepartmentID: saler.DepartmentID, ZoneID: saler.ZoneID}
 	err := db.Create(customer).Error
 	if err != nil {
-		return &models.Customer{}, err
+		return nil, err
 	}
 	logAction(db, userID, fmt.Sprintf("新建客户: %d 信息", customer.ID))
 	return &customer, nil
 }
 
+// GetCustomerByID 查询客户信息
 func GetCustomerByID(db *gorm.DB, customerID uint) (*models.Customer, error) {
 	var customer models.Customer
 	err := db.Where("id = ?", customerID).First(&customer).Error
 	if err != nil {
-		return &models.Customer{}, err
+		return nil, err
 	}
 	return &customer, nil
 }
@@ -360,12 +371,12 @@ func UpdateCustomer(db *gorm.DB, userID, customerID uint, name, phone string, ag
 		Address: address,
 	}).Error
 	if err != nil {
-		return &models.Customer{}, err
+		return nil, err
 	}
 	logAction(db, userID, fmt.Sprintf("更新客户: %d 信息", customerID))
 	updated_customer, err := GetCustomerByID(db, customerID)
 	if err != nil {
-		return &models.Customer{}, err
+		return nil, err
 	}
 	return updated_customer, nil
 }
@@ -376,27 +387,36 @@ func UpdateCustomer(db *gorm.DB, userID, customerID uint, name, phone string, ag
 func ListCustomer(db *gorm.DB, userID uint) (*[]models.Customer, error) {
 	cur_user, err := GetUserByID(db, userID)
 	if err != nil {
-		return &[]models.Customer{}, err
+		return nil, err
 	}
 	var customers []models.Customer
 	if cur_user.RoleID == models.SALES_REPRESENTATIVE {
 		// 销售人员可以查看自己的客户列表
 		err := db.Where("saler_id = ?", userID).Find(&customers).Error
 		if err != nil {
-			return &[]models.Customer{}, err
+			return nil, err
 		}
 	} else if cur_user.RoleID == models.SALES_MANAGER {
 		// 销售部长可以查看部门内的客户列表
-
+		err := db.Where("department_id = ?", cur_user.DepartmentID).Find(&customers).Error
+		if err != nil {
+			return nil, err
+		}
 	} else if cur_user.RoleID == models.SALES_DIRECTOR {
 		// 销售总监可以查看战区内的客户列表
-
+		err := db.Where("zone_id = ?", cur_user.ZoneID).Find(&customers).Error
+		if err != nil {
+			return nil, err
+		}
 	} else if cur_user.RoleID == models.GENERAL_MANAGER {
 		// 总经理可以查看所有客户列表
-
+		err := db.Find(&customers).Error
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		logAction(db, userID, "尝试查看客户列表失败")
-		return &[]models.Customer{}, errors.New("无权限查看客户列表")
+		return nil, errors.New("无权限查看客户列表")
 	}
 	logAction(db, userID, "查看客户列表")
 	return &customers, nil
@@ -419,26 +439,50 @@ func GetPublicSeaCustomerList(db *gorm.DB, userID uint) ([]models.Customer, erro
 func MigrateCustomer(db *gorm.DB, userID, newSalerID, customerID uint) (*models.Customer, error) {
 	cur_user, err := GetUserByID(db, userID)
 	if err != nil {
-		return &models.Customer{}, err
+		return nil, err
 	}
+	newSaler, err := GetUserByID(db, newSalerID)
+	if err != nil {
+		return nil, err
+	}
+	customer, err := GetCustomerByID(db, customerID)
+	if err != nil {
+		return nil, err
+	}
+	var auth bool //权限标志
 	if cur_user.RoleID == models.GENERAL_MANAGER {
-		// 总经理可以跨战区迁移
-		if err := db.Model(&models.Customer{}).Where("id = ?", customerID).Update("saler_id", newSalerID).Error; err != nil {
-			return &models.Customer{}, err
-		}
+		// 总经理可以跨战区迁移，无须判断
+		auth = true
 	} else if cur_user.RoleID == models.SALES_DIRECTOR {
-		// 销售总监可以战区内迁移
+		// 销售总监可以战区内迁移，判断三者战区是否一致
+		if cur_user.ZoneID == newSaler.ZoneID && cur_user.ZoneID == customer.ZoneID {
+			auth = true
+		}
 	} else if cur_user.RoleID == models.SALES_MANAGER {
-		// 销售部长可以部门内迁移
+		// 销售部长可以部门内迁移，判断三者部门是否一致
+		if cur_user.DepartmentID == newSaler.DepartmentID && cur_user.DepartmentID == customer.DepartmentID {
+			auth = true
+		}
 	} else {
+		auth = false
 		logAction(db, userID, "尝试迁移客户失败")
-		return &models.Customer{}, errors.New("无权限迁移客户")
+		return nil, errors.New("无权限迁移客户")
 	}
-
+	//迁移客户
+	if auth {
+		if err := db.Model(&models.Customer{}).Where("id = ?", customerID).Assign(models.Customer{
+			SalerID:      &newSalerID,
+			DepartmentID: newSaler.DepartmentID,
+			ZoneID:       newSaler.ZoneID,
+		}).Error; err != nil {
+			return nil, err
+		}
+	}
+	// 记录迁移操作
 	logAction(db, userID, fmt.Sprintf("迁移了客户：%d 到销售人员：%d", customerID, newSalerID))
 	updated_customer, err := GetCustomerByID(db, customerID)
 	if err != nil {
-		return &models.Customer{}, err
+		return nil, err
 	}
 	return updated_customer, nil
 }
@@ -466,10 +510,12 @@ func AutoUpdateCustomerLoanIntent(db *gorm.DB) error {
 func AutoMigrateCustomerToPublicSea(db *gorm.DB) error {
 	// 使用事务确保更新操作的原子性
 	return db.Transaction(func(tx *gorm.DB) error {
-		// 将贷款意向为0的客户移入公海，同时更新SalerID为0，表示不再有销售人员负责
-		result := tx.Model(&models.Customer{}).Where("loan_intent = 0").Updates(map[string]interface{}{
-			"is_in_public_sea": true,
-			"saler_id":         0,
+		// 将贷款意向为0的客户移入公海，同时更新SalerID为nil
+		result := tx.Model(&models.Customer{}).Where("loan_intent = 0").Assign(models.Customer{
+			IsInPublicSea: true,
+			SalerID:       nil,
+			DepartmentID:  nil,
+			ZoneID:        nil,
 		})
 		if result.Error != nil {
 			return result.Error
