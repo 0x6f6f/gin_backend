@@ -147,6 +147,20 @@ const (
 	REJECTED                        // 已拒绝
 )
 
+var ContractStatusNameMap = map[ContractStatus]string{
+    NEW:       "新建",
+	APPROVING: "审批中",
+	APPROVED:   "已批准",
+	REJECTED:   "已拒绝",
+}
+
+var ContractStatusStrToEnumMap = map[string]ContractStatus{
+    "新建":       NEW,
+	"审批中": APPROVING,
+	"已批准":   APPROVED,
+	"已拒绝":   REJECTED,
+}
+
 // 贷款详情
 type Contract struct {
 	gorm.Model

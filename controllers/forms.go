@@ -188,6 +188,28 @@ type SubmitContractForm struct {
 	BankDocuments string    `form:"bank_documents"`
 }
 
+/*
+status同样可以使用以下值：
+"新建" => "NEW",
+"审批中" => "APPROVING",
+"已批准" => "APPROVED",
+"已拒绝" => "REJECTED",
+*/
+type UpdateContractStatusForm struct {
+    UserID     uint      `form:"user_id"`
+	ContractID uint      `form:"contract_id"`
+	Status      string    `form:"status"`
+}
+
+//userID, contractID uint, amount, serviceFee, bankAmount float64
+type UpdateContractAmountForm struct {
+    UserID     uint      `form:"user_id"`
+	ContractID uint      `form:"contract_id"`
+	Amount    float64   `form:"amount"`
+	ServiceFee float64   `form:"service_fee"`
+	BankAmount  float64   `form:"bank_amount"`
+}
+
 type GetContractListForm struct {
 	UserID uint `form:"user_id"`
 }

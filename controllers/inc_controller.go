@@ -661,7 +661,6 @@ func SaleListCustomers(ctx *gin.Context) {
 
 }
 
-// todo: repo对应的功能还没写
 func SaleMigrateCustomer(ctx *gin.Context) {
 	var migrateForm MigrateCustomerForm
 	if err := ctx.ShouldBind(&migrateForm); err != nil {
@@ -805,6 +804,80 @@ func SaleSubmitContract(ctx *gin.Context) {
 	    Message: "Submit contract successful",
 	    Data:    contract,
 	}
+	ctx.JSON(http.StatusOK, response)
+}
+
+func FinanaceUpdateContractStatus(ctx *gin.Context) {
+	var updateForm UpdateContractStatusForm
+	if err := ctx.ShouldBind(&updateForm); err != nil {
+	    response := Response{
+	        Code:    http.StatusBadRequest,
+	        Message: "Invalid update form",
+	    }
+	    ctx.JSON(http.StatusBadRequest, response)
+	    return
+	}
+
+	contract, err := repository.UpdateContractStatus(
+		database.DB,
+		updateForm.UserID,
+		updateForm.ContractID,
+		models.ContractStatusStrToEnumMap[updateForm.Status],
+	)
+	if err != nil {
+	    response := Response{
+	        Code:    http.StatusInternalServerError,
+	        Message: "Failed to update contract status: " + err.Error(),
+
+	    }
+		ctx.JSON(http.StatusInternalServerError, response)
+		return
+	}
+
+	response := Response{
+		Code:    http.StatusOK,
+		Message: "Update contract status successful",
+		Data:    contract,
+	}
+	ctx.JSON(http.StatusOK, response)
+}
+
+
+func FinanaceUpdateContractAmount(ctx *gin.Context) {
+    var updateForm UpdateContractAmountForm
+    if err := ctx.ShouldBind(&updateForm); err != nil {
+        response := Response{
+            Code:    http.StatusBadRequest,
+            Message: "Invalid update form",
+        }
+        ctx.JSON(http.StatusBadRequest, response)
+		return
+
+    }
+
+	contract, err := repository.UpdateContractAmount(
+	    database.DB,
+		updateForm.UserID,
+		updateForm.ContractID,
+		updateForm.Amount,
+		updateForm.ServiceFee,
+		updateForm.BankAmount,
+	)
+	if err != nil {
+	    response := Response{
+	        Code:    http.StatusInternalServerError,
+	        Message: "Failed to update contract amount: " + err.Error(),
+	    }
+	    ctx.JSON(http.StatusInternalServerError, response)
+	    return
+	}
+
+	response := Response{
+	    Code:    http.StatusOK,
+	    Message: "Update contract amount successful",
+	    Data:    contract,
+	}
+
 	ctx.JSON(http.StatusOK, response)
 }
 

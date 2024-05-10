@@ -66,6 +66,12 @@ func RegisterRoutes(route *gin.Engine) {
 		saleGroup.GET("/submitContract", controllers.SaleSubmitContract)
 	}
 
+	finanaceGroup := route.Group(api_version+"/finance", middleware.UserRoleAuthMiddleware([]string{"金融专员", "金融经理"}))
+	{
+		finanaceGroup.GET("/updateContractStatus", controllers.FinanaceUpdateContractStatus)
+		finanaceGroup.GET("/updateContractAmount", controllers.FinanaceUpdateContractAmount)
+	}
+
 	contractAccessGroup := route.Group(api_version+"/contract", middleware.UserRoleAuthMiddleware([]string{"销售代表", "销售经理", "销售总监", "总经理", "金融经理", "会计"}))
 	{
 		// todo: not tested
@@ -74,7 +80,4 @@ func RegisterRoutes(route *gin.Engine) {
 		// 获取合同详情
 		contractAccessGroup.GET("/getContractDetail", controllers.GetContractDetail)
 	}
-
-
-
 }
