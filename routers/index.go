@@ -19,7 +19,13 @@ func RegisterRoutes(route *gin.Engine) {
 	api_version := "/api/v1"
 	route.GET(api_version+"/register", controllers.UserRegister)
 	route.GET(api_version+"/login", controllers.UserLogin)
-	route.GET("/updateUserProfile", controllers.UserUpdateProfile)
+	route.GET(api_version+"/updateUserProfile", controllers.UserUpdateProfile)
+
+	// todo: not tested
+	route.GET(api_version+"/getSalerPerformance", controllers.GetSalerPerformance)
+	route.GET(api_version+"/getDepartmentPerformance", controllers.GetDepartmentPerformance)
+	route.GET(api_version+"/getZonePerformance", controllers.GetZonePerformance)
+	route.GET(api_version+"getLoanAnalysis", controllers.LoanAnalysis)
 
 	adminGroup := route.Group(api_version+"/admin", middleware.UserRoleAuthMiddleware([]string{"系统管理员"}))
 	{
@@ -55,6 +61,20 @@ func RegisterRoutes(route *gin.Engine) {
 		saleGroup.GET("/getPublicSeaCustomerList", controllers.SaleGetPublicSeaCustomerList)
 		// todo: not tested
 		// 管理工作日志
-		saleGroup.GET("createWorkLog", controllers.SaleCreateWorkLog)
+		saleGroup.GET("/createWorkLog", controllers.SaleCreateWorkLog)
+		// 提交合同
+		saleGroup.GET("/submitContract", controllers.SaleSubmitContract)
 	}
+
+	contractAccessGroup := route.Group(api_version+"/contract", middleware.UserRoleAuthMiddleware([]string{"销售代表", "销售经理", "销售总监", "总经理", "金融经理", "会计"}))
+	{
+		// todo: not tested
+		// 获取合同列表
+		contractAccessGroup.GET("/getContractList", controllers.GetContractList)
+		// 获取合同详情
+		contractAccessGroup.GET("/getContractDetail", controllers.GetContractDetail)
+	}
+
+
+
 }
