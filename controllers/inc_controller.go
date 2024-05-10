@@ -766,3 +766,253 @@ func SaleCreateWorkLog(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, response)
 }
+
+func SaleSubmitContract(ctx *gin.Context) {
+    var submitForm SubmitContractForm
+    if err := ctx.ShouldBind(&submitForm); err != nil {
+        response := Response{
+            Code:    http.StatusBadRequest,
+            Message: "Invalid submit form",
+        }
+        ctx.JSON(http.StatusBadRequest, response)
+        return
+    }
+
+    contract, err := repository.SubmitContract(
+        database.DB,
+        submitForm.UserID,
+        submitForm.CustomerID,
+        submitForm.FinanceID,
+		submitForm.AccountantID,
+		submitForm.Amount,
+		submitForm.ServiceFee,
+		submitForm.BankAmount,
+		submitForm.FinancialProduct,
+		submitForm.ContractDocument,
+		submitForm.BankDocuments,
+    )
+	if err != nil {
+	    response := Response{
+	        Code:    http.StatusInternalServerError,
+	        Message: "Failed to submit contract: " + err.Error(),
+	    }
+	    ctx.JSON(http.StatusInternalServerError, response)
+	    return
+	}
+
+	response := Response{
+	    Code:    http.StatusOK,
+	    Message: "Submit contract successful",
+	    Data:    contract,
+	}
+	ctx.JSON(http.StatusOK, response)
+}
+
+func GetContractList(ctx *gin.Context) {
+	var getForm GetContractListForm
+	if err := ctx.ShouldBind(&getForm); err != nil {
+		response := Response{
+			Code:    http.StatusBadRequest,
+			Message: "Invalid get form",
+		}
+		ctx.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	contracts, err := repository.GetContractListByUser(
+		database.DB,
+		getForm.UserID,
+	)
+	if err != nil {
+	    response := Response{
+	        Code:    http.StatusInternalServerError,
+	        Message: "Failed to get contract list: " + err.Error(),
+	    }
+	    ctx.JSON(http.StatusInternalServerError, response)
+	    return
+	}
+
+	response := Response{
+	    Code:    http.StatusOK,
+	    Message: "Get contract list successful",
+	    Data:    contracts,
+	}
+	ctx.JSON(http.StatusOK, response)
+}
+
+func GetContractDetail(ctx *gin.Context) {
+    var getForm GetContractDetailForm
+    if err := ctx.ShouldBind(&getForm); err != nil {
+        response := Response{
+            Code:    http.StatusBadRequest,
+            Message: "Invalid get form",
+        }
+        ctx.JSON(http.StatusBadRequest, response)
+        return
+    }
+
+    contract, err := repository.GetContract(
+        database.DB,
+        getForm.UserID,
+        getForm.ContractID,
+    )
+    if err != nil {
+        response := Response{
+            Code:    http.StatusInternalServerError,
+            Message: "Failed to get contract detail: " + err.Error(),
+        }
+        ctx.JSON(http.StatusInternalServerError, response)
+        return
+    }
+
+	response := Response{
+	    Code:    http.StatusOK,
+	    Message: "Get contract detail successful",
+	    Data:    contract,
+	}
+	ctx.JSON(http.StatusOK, response)
+}
+
+// GetSalerPerformance 获取销售人员的业绩
+func GetSalerPerformance(ctx *gin.Context) {
+    var getForm GetSalerPerformanceForm
+    if err := ctx.ShouldBind(&getForm); err != nil {
+        response := Response{
+            Code:    http.StatusBadRequest,
+            Message: "Invalid get form",
+        }
+        ctx.JSON(http.StatusBadRequest, response)
+        return
+    }
+
+    performance, err := repository.GetSalerPerformance(
+        database.DB,
+        getForm.UserID,
+		getForm.SalerID,
+        getForm.StartDate,
+        getForm.EndDate,
+    )
+	if err != nil {
+	    response := Response{
+	        Code:    http.StatusInternalServerError,
+	        Message: "Failed to get saler performance: " + err.Error(),
+	    }
+	    ctx.JSON(http.StatusInternalServerError, response)
+	    return
+	}
+
+	response := Response{
+	    Code:    http.StatusOK,
+	    Message: "Get saler performance successful",
+	    Data:    performance,
+	}
+	ctx.JSON(http.StatusOK, response)
+}
+
+// GetDepartmentPerformance 获取部门业绩
+func GetDepartmentPerformance(ctx *gin.Context) {
+    var getForm GetDepartmentPerformanceForm
+    if err := ctx.ShouldBind(&getForm); err != nil {
+        response := Response{
+            Code:    http.StatusBadRequest,
+            Message: "Invalid get form",
+        }
+		ctx.JSON(http.StatusBadRequest, response)
+		return
+    }
+    performance, err := repository.GetDepartmentPerformance(
+	    database.DB,
+		getForm.UserID,
+		getForm.DepartmentID,
+		getForm.StartDate,
+		getForm.EndDate,
+
+	)
+	if err != nil {
+		response := Response{
+		    Code:    http.StatusInternalServerError,
+		    Message: "Failed to get department performance: " + err.Error(),
+		}
+		ctx.JSON(http.StatusInternalServerError, response)
+		return
+	}
+	response := Response{
+	    Code:    http.StatusOK,
+	    Message: "Get department performance successful",
+	    Data:    performance,
+	}
+	ctx.JSON(http.StatusOK, response)
+}
+
+// GetZonePerformance 获取战区业绩
+func GetZonePerformance(ctx *gin.Context) {
+    var getForm GetZonePerformanceForm
+    if err := ctx.ShouldBind(&getForm); err != nil {
+        response := Response{
+            Code:    http.StatusBadRequest,
+            Message: "Invalid get form",
+        }
+		ctx.JSON(http.StatusBadRequest, response)
+		return
+
+    }
+
+    performance, err := repository.GetZonePerformance(
+	    database.DB,
+		getForm.UserID,
+		getForm.ZoneID,
+		getForm.StartDate,
+		getForm.EndDate,
+	)
+	if err != nil {
+	    response := Response{
+	        Code:    http.StatusInternalServerError,
+	        Message: "Failed to get zone performance: " + err.Error(),
+	    }
+	    ctx.JSON(http.StatusInternalServerError, response)
+	    return
+	}
+
+	response := Response{
+	    Code:    http.StatusOK,
+	    Message: "Get zone performance successful",
+	    Data:    performance,
+	}
+	ctx.JSON(http.StatusOK, response)
+}
+
+func LoanAnalysis(ctx *gin.Context) {
+    var getForm GetLoanAnalysisForm
+    if err := ctx.ShouldBind(&getForm); err != nil {
+        response := Response{
+            Code:    http.StatusBadRequest,
+            Message: "Invalid get form",
+        }
+		ctx.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	totalAmount, count, averageAmount, err := repository.LoanAnalysis(
+	    database.DB,
+		getForm.UserID,
+	)
+	if err != nil {
+	    response := Response{
+	        Code:    http.StatusInternalServerError,
+	        Message: "Failed to get loan analysis: " + err.Error(),
+	    }
+	    ctx.JSON(http.StatusInternalServerError, response)
+	    return
+	}
+
+	response := Response{
+	    Code:    http.StatusOK,
+	    Message: "Get loan analysis successful",
+	    Data: gin.H{
+	        "total_amount": totalAmount,
+	        "count":         count,
+	        "average_amount": averageAmount,
+	    },
+	}
+	ctx.JSON(http.StatusOK, response)
+}

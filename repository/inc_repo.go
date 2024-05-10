@@ -543,14 +543,24 @@ func CreateWorkLog(db *gorm.DB, userID uint, calls, validCalls, visits, contract
 
 /*合同管理*/
 
+// GetContractByID 查询合同信息
+func GetContractByID(db *gorm.DB, contractID uint) (*models.Contract, error) {
+	var contract models.Contract
+	err := db.Where("id = ?", contractID).First(&contract).Error
+	if err != nil {
+		return nil, err
+	}
+	return &contract, nil
+}
+
 // SubmitContract 销售人员提交合同
 func SubmitContract(db *gorm.DB, salerID, customerID, finanaceID, accountantID uint,
 	amount, serviceFee, bankAmount float64,
-	financialProduct, contractDocument, bankDocuments string) error {
+	financialProduct, contractDocument, bankDocuments string) (*models.Contract, error) {
 	// 获取销售人员信息
 	var saler models.User
 	if err := db.Where("id = ?", salerID).First(&saler).Error; err != nil {
-		return err
+		return nil, err
 	}
 	contract := models.Contract{
 		Amount:           amount,
@@ -568,81 +578,136 @@ func SubmitContract(db *gorm.DB, salerID, customerID, finanaceID, accountantID u
 		ZoneID:           *(saler.ZoneID),
 	}
 	if err := db.Create(&contract).Error; err != nil {
-		return err
+		return nil, err
 	}
 	logAction(db, salerID, fmt.Sprintf("提交合同: %d", contract.ID))
-	return nil
+	return &contract, nil
 }
 
 // UpdateContractStatus 更新合同状态
 // 金融专员/经理可以更新合同状态为审批中，审批通过或审批拒绝
-func UpdateContractStatus(db *gorm.DB, userID, contractID uint, status models.ContractStatus) error {
+func UpdateContractStatus(db *gorm.DB, userID, contractID uint, status models.ContractStatus) (*models.Contract, error) {
 	// 更新合同状态
 	if err := db.Model(&models.Contract{}).Where("id = ?", contractID).Update("status", status).Error; err != nil {
-		return err
+		return nil, err
 	}
 	logAction(db, userID, fmt.Sprintf("更新了合同: %d 状态为: %d", contractID, status))
-	return nil
+	updated_contract, err := GetContractByID(db, contractID)
+	if err != nil {
+		return nil, err
+	}
+	return updated_contract, nil
 }
 
 // UpdateContractAmount 更新合同金额信息
 // 会计可以更新合同金额信息
-func UpdateContractAmount(db *gorm.DB, userID, contractID uint, amount, serviceFee, bankAmount float64) error {
+func UpdateContractAmount(db *gorm.DB, userID, contractID uint, amount, serviceFee, bankAmount float64) (*models.Contract, error) {
 	// 更新合同金额信息
 	if err := db.Model(&models.Contract{}).Where("id = ?", contractID).Updates(models.Contract{
 		Amount:     amount,
 		ServiceFee: serviceFee,
 		BankAmount: bankAmount,
 	}).Error; err != nil {
-		return err
+		return nil, err
 	}
 	logAction(db, userID, fmt.Sprintf("更新了合同: %d 金额信息", contractID))
-	return nil
-}
-
-// GetContractListBySalerID 查询销售人员的合同列表
-// 销售人员可以查看自己的合同列表
-func GetContractListBySalerID(db *gorm.DB, userID, salerID uint) ([]models.Contract, error) {
-	var contracts []models.Contract
-	if err := db.Where("saler_id = ?", salerID).Find(&contracts).Error; err != nil {
+	updated_contract, err := GetContractByID(db, contractID)
+	if err != nil {
 		return nil, err
 	}
-	logAction(db, userID, fmt.Sprintf("查看了销售人员: %d 合同列表", salerID))
-	return contracts, nil
+	return updated_contract, nil
 }
 
-// GetContractListByDepartmentID 查询销售部门的合同列表
-// 销售经理可以查看部门内的合同列表
-func GetContractListByDepartmentID(db *gorm.DB, userID, departmentID uint) ([]models.Contract, error) {
-	var contracts []models.Contract
-	if err := db.Where("department_id = ?", departmentID).Find(&contracts).Error; err != nil {
-		return nil, err
-	}
-	logAction(db, userID, fmt.Sprintf("查看了部门: %d 合同列表", departmentID))
-	return contracts, nil
+// // GetContractListBySalerID 查询销售人员的合同列表
+// // 销售人员可以查看自己的合同列表
+// func GetContractListBySalerID(db *gorm.DB, userID, salerID uint) ([]models.Contract, error) {
+// 	var contracts []models.Contract
+// 	if err := db.Where("saler_id = ?", salerID).Find(&contracts).Error; err != nil {
+// 		return nil, err
+// 	}
+// 	logAction(db, userID, fmt.Sprintf("查看了销售人员: %d 合同列表", salerID))
+// 	return contracts, nil
+// }
+
+// // GetContractListByDepartmentID 查询销售部门的合同列表
+// // 销售经理可以查看部门内的合同列表
+// func GetContractListByDepartmentID(db *gorm.DB, userID, departmentID uint) ([]models.Contract, error) {
+// 	var contracts []models.Contract
+// 	if err := db.Where("department_id = ?", departmentID).Find(&contracts).Error; err != nil {
+// 		return nil, err
+// 	}
+// 	logAction(db, userID, fmt.Sprintf("查看了部门: %d 合同列表", departmentID))
+// 	return contracts, nil
+// }
+
+// // GetContractListByZoneID 查询销售战区的合同列表
+// // 销售总监可以查看战区内的合同列表
+// func GetContractListByZoneID(db *gorm.DB, userID, zoneID uint) ([]models.Contract, error) {
+// 	var contracts []models.Contract
+// 	if err := db.Where("zone_id = ?", zoneID).Find(&contracts).Error; err != nil {
+// 		return nil, err
+// 	}
+// 	logAction(db, userID, fmt.Sprintf("查看了战区: %d 合同列表", zoneID))
+// 	return contracts, nil
+// }
+
+// // GetContractList 查询所有合同列表
+// // 总经理/金融经理/会计可以查看所有合同列表
+// func GetContractList(db *gorm.DB, userID uint) ([]models.Contract, error) {
+// 	var contracts []models.Contract
+// 	if err := db.Find(&contracts).Error; err != nil {
+// 		return nil, err
+// 	}
+// 	logAction(db, userID, "查看了所有合同列表")
+// 	return contracts, nil
+// }
+
+func GetContractListByUser(db *gorm.DB, userID uint) (*[]models.Contract, error) {
+    // 获取当前用户信息
+    curUser, err := GetUserByID(db, userID)
+    if err != nil {
+        return nil, err
+    }
+
+    var contracts []models.Contract
+
+    // 根据用户角色决定查询条件
+    switch curUser.RoleID {
+    case models.SALES_REPRESENTATIVE:
+        // 销售人员只能查看自己的合同列表
+        err := db.Where("saler_id = ?", userID).Find(&contracts).Error
+        if err != nil {
+            return nil, err
+        }
+    case models.SALES_MANAGER:
+        // 销售经理可以查看部门内的合同列表
+        err := db.Where("department_id = ?", curUser.DepartmentID).Find(&contracts).Error
+        if err != nil {
+            return nil, err
+        }
+    case models.SALES_DIRECTOR:
+        // 销售总监可以查看战区内的合同列表
+        err := db.Where("zone_id = ?", curUser.ZoneID).Find(&contracts).Error
+        if err != nil {
+            return nil, err
+        }
+    case models.GENERAL_MANAGER, models.FINANCE_MANAGER, models.ACCOUNTANT:
+        // 总经理、金融经理、会计可以查看所有合同列表
+        err := db.Find(&contracts).Error
+        if err != nil {
+            return nil, err
+        }
+    default:
+        // 如果不是以上角色，则无权限查看合同列表
+        logAction(db, userID, "尝试查看合同列表失败")
+        return nil, errors.New("无权限查看合同列表")
+    }
+
+    // 记录操作日志
+    logAction(db, userID, "查看了合同列表")
+    return &contracts, nil
 }
 
-// GetContractListByZoneID 查询销售战区的合同列表
-// 销售总监可以查看战区内的合同列表
-func GetContractListByZoneID(db *gorm.DB, userID, zoneID uint) ([]models.Contract, error) {
-	var contracts []models.Contract
-	if err := db.Where("zone_id = ?", zoneID).Find(&contracts).Error; err != nil {
-		return nil, err
-	}
-	logAction(db, userID, fmt.Sprintf("查看了战区: %d 合同列表", zoneID))
-	return contracts, nil
-}
-
-// GetContractList 查询所有合同列表
-// 总经理/金融经理/会计可以查看所有合同列表
-func GetContractList(db *gorm.DB, userID uint) ([]models.Contract, error) {
-	var contracts []models.Contract
-	if err := db.Find(&contracts).Error; err != nil {
-		return nil, err
-	}
-	logAction(db, userID, "查看了所有合同列表")
-	return contracts, nil
-}
 
 // GetContract 查询合同信息
 // 销售人员/金融专员可以查看自己的合同信息，销售经理可以查看部门内的合同信息，

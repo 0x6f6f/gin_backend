@@ -173,3 +173,51 @@ type CreateWorkLogForm struct {
 	Contracts  int       `form:"contracts"`
 	Date       time.Time `form:"date"`
 }
+
+type SubmitContractForm struct {
+    UserID     uint      `form:"user_id"`
+	CustomerID uint      `form:"customer_id"`
+	FinanceID  uint      `form:"finance_id"`
+	AccountantID uint      `form:"accountant_id"`
+	Amount    float64   `form:"amount"`
+	ServiceFee float64   `form:"service_fee"`
+	BankAmount  float64   `form:"bank_amount"`
+	FinancialProduct string    `form:"financial_product"`
+	// mock, not implemented. just upload str.
+	ContractDocument string    `form:"contract_document"`
+	BankDocuments string    `form:"bank_documents"`
+}
+
+type GetContractListForm struct {
+	UserID uint `form:"user_id"`
+}
+
+type GetContractDetailForm struct {
+    UserID uint `form:"user_id"`
+	ContractID uint `form:"contract_id"`
+}
+
+type GetSalerPerformanceForm struct {
+    UserID uint `form:"user_id"`
+	SalerID uint `form:"saler_id"`
+	StartDate time.Time `form:"start_date"`
+	EndDate time.Time `form:"end_date"`
+}
+
+type GetDepartmentPerformanceForm struct {
+    UserID uint `form:"user_id"`
+	DepartmentID uint `form:"department_id"`
+	StartDate time.Time `form:"start_date"`
+	EndDate time.Time `form:"end_date"`
+}
+
+type GetZonePerformanceForm struct {
+    UserID uint `form:"user_id"`
+	ZoneID uint `form:"zone_id"`
+	StartDate time.Time `form:"start_date"`
+	EndDate time.Time `form:"end_date"`
+}
+
+type GetLoanAnalysisForm struct {
+    UserID uint `form:"user_id"`
+}
