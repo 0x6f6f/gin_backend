@@ -208,51 +208,51 @@ func CreateFinanceDepartment(db *gorm.DB, systemManagerID uint, name string) (*m
 // AssignDepartmentToZone 分配部门到战区
 // 系统管理员可以分配部门到战区
 func AssignDepartmentToZone(db *gorm.DB, systemManagerID, departmentID, zoneID uint) error {
-	//获取部门
-	var department models.Department
-	if err := db.Where("id = ?", departmentID).First(&department).Error; err != nil {
-		return err
-	}
-	//获取战区
-	var zone models.Zone
-	if err := db.Where("id = ?", zoneID).First(&zone).Error; err != nil {
-		return err
-	}
-	//更新部门所属战区
-	if err := db.Model(&models.Department{}).Where("id = ?", departmentID).Update("zone_id", zoneID).Error; err != nil {
-		return err
-	}
-	//更新战区内包含的部门
-	if err := db.Model(&models.Zone{}).Where("id = ?", zoneID).Association("Departments").Append(&department); err != nil {
-		return err
-	}
-	logAction(db, systemManagerID, fmt.Sprintf("分配部门: %d 到战区: %d", departmentID, zoneID))
-	return nil
+    //获取部门
+    var department models.Department
+    if err := db.Where("id = ?", departmentID).First(&department).Error; err != nil {
+        return err
+    }
+    //获取战区
+    var zone models.Zone
+    if err := db.Where("id = ?", zoneID).First(&zone).Error; err != nil {
+        return err
+    }
+    // 更新部门所属战区
+    if err := db.Model(&models.Department{}).Where("id = ?", departmentID).Update("zone_id", zoneID).Error; err != nil {
+        return err
+    }
+    // 更新战区内包含的部门
+    if err := db.Model(&zone).Update("Departments", append(zone.Departments, department)).Error; err != nil {
+        return err
+    }
+    logAction(db, systemManagerID, fmt.Sprintf("分配部门: %d 到战区: %d", departmentID, zoneID))
+    return nil
 }
 
 // AssignUserToDepartment 分配用户到部门
 // 系统管理员可以分配用户到部门
 func AssignUserToDepartment(db *gorm.DB, systemManagerID, userID, departmentID uint) error {
-	//获取用户
-	var user models.User
-	if err := db.Where("id = ?", userID).First(&user).Error; err != nil {
-		return err
-	}
-	//获取部门
-	var department models.Department
-	if err := db.Where("id = ?", departmentID).First(&department).Error; err != nil {
-		return err
-	}
-	//更新用户所属部门
-	if err := db.Model(&models.User{}).Where("id = ?", userID).Update("department_id", departmentID).Error; err != nil {
-		return err
-	}
-	//更新部门内包含的用户
-	if err := db.Model(&models.Department{}).Where("id = ?", departmentID).Association("models.User").Append(&user); err != nil {
-		return err
-	}
-	logAction(db, systemManagerID, fmt.Sprintf("分配用户: %d 到部门: %d", userID, departmentID))
-	return nil
+    //获取用户
+    var user models.User
+    if err := db.Where("id = ?", userID).First(&user).Error; err != nil {
+        return err
+    }
+    //获取部门
+    var department models.Department
+    if err := db.Where("id = ?", departmentID).First(&department).Error; err != nil {
+        return err
+    }
+    //更新用户所属部门
+    if err := db.Model(&models.User{}).Where("id = ?", userID).Update("department_id", departmentID).Error; err != nil {
+        return err
+    }
+    // 更新部门内包含的用户
+    if err := db.Model(&department).Update("User", append(department.Users, user)).Error; err != nil {
+        return err
+    }
+    logAction(db, systemManagerID, fmt.Sprintf("分配用户: %d 到部门: %d", userID, departmentID))
+    return nil
 }
 
 // AssignUserToZone 分配用户到战区

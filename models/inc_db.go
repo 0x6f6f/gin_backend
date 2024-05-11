@@ -92,11 +92,11 @@ type UserProfile struct {
 
 // 销售部门
 type Department struct {
-	gorm.Model
-	Name    string `gorm:"unique"`
-	User    []User `gorm:"foreignKey:DepartmentID"` //包含全部销售人员
-	ZoneID  *uint  //所属战区ID
-	ManagerID *uint   //部门销售经理
+    gorm.Model
+    Name      string `gorm:"unique"`
+    Users     []User `gorm:"foreignKey:DepartmentID"` //包含全部销售人员
+    ZoneID    *uint  //所属战区ID
+    ManagerID *uint  //部门销售经理ID
 }
 
 // 销售部战区
