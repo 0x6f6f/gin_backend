@@ -96,7 +96,7 @@ type Department struct {
 	Name    string `gorm:"unique"`
 	User    []User `gorm:"foreignKey:DepartmentID"` //包含全部销售人员
 	ZoneID  *uint  //所属战区ID
-	Manager User   //部门销售经理
+	ManagerID *uint   //部门销售经理
 }
 
 // 销售部战区
@@ -104,7 +104,7 @@ type Zone struct {
 	gorm.Model
 	Name        string       `gorm:"unique"`
 	Departments []Department `gorm:"foreignKey:ZoneID"` //包含全部销售部门
-	Director    User         //战区销售总监
+	DirectorID    *uint         //战区销售总监
 }
 
 // 销售人员的工作日志

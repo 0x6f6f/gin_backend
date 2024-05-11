@@ -13,6 +13,7 @@ import (
 	"github.com/robfig/cron"
 	"github.com/spf13/viper"
 )
+
 var c *cron.Cron
 
 func myTask() {
@@ -25,7 +26,7 @@ func myTask() {
 
 func setupCron() {
     c = cron.New()
-    c.AddFunc("@every 1d", myTask) // 这里的"@every 1m"表示每分钟执行一次
+    c.AddFunc("@every 1d", myTask) // 这里的"@every 1d"表示每天执行一次
     c.Start()
 }
 
