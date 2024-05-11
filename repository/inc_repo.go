@@ -248,7 +248,7 @@ func AssignUserToDepartment(db *gorm.DB, systemManagerID, userID, departmentID u
         return err
     }
     // 更新部门内包含的用户
-    if err := db.Model(&department).Update("User", append(department.Users, user)).Error; err != nil {
+    if err := db.Model(&department).Update("Users", append(department.Users, user)).Error; err != nil {
         return err
     }
     logAction(db, systemManagerID, fmt.Sprintf("分配用户: %d 到部门: %d", userID, departmentID))
