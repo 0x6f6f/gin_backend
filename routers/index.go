@@ -22,10 +22,18 @@ func RegisterRoutes(route *gin.Engine) {
 	route.GET(api_version+"/updateUserProfile", controllers.UserUpdateProfile)
 
 	// todo: not tested
+	// stats
 	route.GET(api_version+"/getSalerPerformance", controllers.GetSalerPerformance)
 	route.GET(api_version+"/getDepartmentPerformance", controllers.GetDepartmentPerformance)
 	route.GET(api_version+"/getZonePerformance", controllers.GetZonePerformance)
-	route.GET(api_version+"getLoanAnalysis", controllers.LoanAnalysis)
+	route.GET(api_version+"/getLoanAnalysis", controllers.LoanAnalysis)
+
+	// todo: not tested
+	// get methods for department and zone
+	route.GET(api_version+"/getDepartments", controllers.GetDepartments)
+	route.GET(api_version+"/getZones", controllers.GetZones)
+	route.GET(api_version+"/getDepartmentByID", controllers.GetDepartmentByID)
+	route.GET(api_version+"/getZoneByID", controllers.GetZoneByID)
 
 	adminGroup := route.Group(api_version+"/admin", middleware.UserRoleAuthMiddleware([]string{"系统管理员"}))
 	{

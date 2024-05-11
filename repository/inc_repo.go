@@ -799,3 +799,37 @@ func logAction(db *gorm.DB, userID uint, action string) error {
 	}
 	return nil
 }
+
+// 战区列表查询
+func GetZones(db *gorm.DB) ([]models.Zone, error) {
+    var zones []models.Zone
+    if err := db.Find(&zones).Error; err != nil {
+        return nil, err
+    }
+    return zones, nil
+}
+
+func GetZoneByID(db *gorm.DB, zoneID uint) (models.Zone, error) {
+    var zone models.Zone
+    if err := db.First(&zone, zoneID).Error; err != nil {
+        return models.Zone{}, err
+    }
+    return zone, nil
+}
+
+// 部门列表查询
+func GetDepartments(db *gorm.DB) ([]models.Department, error) {
+    var departments []models.Department
+    if err := db.Find(&departments).Error; err != nil {
+        return nil, err
+    }
+    return departments, nil
+}
+
+func GetDepartmentByID(db *gorm.DB, departmentID uint) (models.Department, error) {
+    var department models.Department
+    if err := db.First(&department, departmentID).Error; err != nil {
+        return models.Department{}, err
+    }
+    return department, nil
+}

@@ -243,3 +243,17 @@ type GetZonePerformanceForm struct {
 type GetLoanAnalysisForm struct {
     UserID uint `form:"user_id"`
 }
+
+// type GetDepartmentsForm struct {
+// }
+
+type GetDepartmentByIDForm struct {
+	DepartmentID uint `form:"department_id"`
+}
+
+// type GetZonesForm struct {
+// }
+
+type GetZoneByIDForm struct {
+	ZoneID uint `form:"zone_id"`
+}

@@ -1089,3 +1089,109 @@ func LoanAnalysis(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, response)
 }
+
+func GetZones(ctx *gin.Context) {
+	zones, err := repository.GetZones(
+	    database.DB,
+	)
+	if err != nil {
+	    response := Response{
+	        Code:    http.StatusInternalServerError,
+	        Message: "Failed to get zones: " + err.Error(),
+	    }
+	    ctx.JSON(http.StatusInternalServerError, response)
+	    return
+	}
+
+	response := Response{
+	    Code:    http.StatusOK,
+	    Message: "Get zones successful",
+	    Data:    zones,
+	}
+	ctx.JSON(http.StatusOK, response)
+}
+
+func GetZoneByID(ctx *gin.Context) {
+	var getForm GetZoneByIDForm
+	if err := ctx.ShouldBind(&getForm); err != nil {
+	    response := Response{
+	        Code:    http.StatusBadRequest,
+	        Message: "Invalid get form",
+	    }
+		ctx.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	zone, err := repository.GetZoneByID(
+	    database.DB,
+		getForm.ZoneID,
+	)
+	if err != nil {
+	    response := Response{
+	        Code:    http.StatusInternalServerError,
+	        Message: "Failed to get zone: " + err.Error(),
+	    }
+		ctx.JSON(http.StatusOK, response)
+		return 
+	}
+
+	response := Response{
+	    Code:    http.StatusOK,
+	    Message: "Get zone successful",
+	    Data:    zone,
+	}
+	ctx.JSON(http.StatusOK, response)
+}
+
+func GetDepartments(ctx *gin.Context) {
+	departments, err := repository.GetDepartments(
+	    database.DB,
+	)
+	if err != nil {
+	    response := Response{
+	        Code:    http.StatusInternalServerError,
+	        Message: "Failed to get departments: " + err.Error(),
+	    }
+		ctx.JSON(http.StatusOK, response)
+		return
+	}
+
+	response := Response{
+	    Code:    http.StatusOK,
+	    Message: "Get departments successful",
+	    Data:    departments,
+	}
+	ctx.JSON(http.StatusOK, response)
+}
+
+func GetDepartmentByID(ctx *gin.Context) {
+    var getForm GetDepartmentByIDForm
+	if err := ctx.ShouldBind(&getForm); err != nil {
+	    response := Response{
+	        Code:    http.StatusBadRequest,
+	        Message: "Invalid get form",
+	    }
+		ctx.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	department, err := repository.GetDepartmentByID(
+	    database.DB,
+		getForm.DepartmentID,
+	)
+	if err != nil {
+	    response := Response{
+	        Code:    http.StatusInternalServerError,
+	        Message: "Failed to get department: " + err.Error(),
+	    }
+		ctx.JSON(http.StatusOK, response)
+		return
+	}
+
+	response := Response{
+	    Code:    http.StatusOK,
+	    Message: "Get department successful",
+	    Data:    department,
+	}
+	ctx.JSON(http.StatusOK, response)
+}
