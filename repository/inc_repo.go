@@ -343,7 +343,7 @@ func CreateCustomer(db *gorm.DB, userID uint, name, phone string) (*models.Custo
 	}
 	customer := models.Customer{Name: name, Phone: phone, LoanIntent: 10, IsInPublicSea: false,
 		SalerID: &userID, DepartmentID: saler.DepartmentID, ZoneID: saler.ZoneID}
-	err := db.Create(customer).Error
+	err := db.Create(&customer).Error
 	if err != nil {
 		return nil, err
 	}
